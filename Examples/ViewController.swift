@@ -11,16 +11,17 @@ final class ViewController: NSViewController {
         var url: URL {
             switch self {
             case .current:
-                return URL(string: "https://heimdalqastorage.blob.core.windows.net/mac-agent-updates/rc/pkg/HeimdalPackage_3.5.2_rc.pkg")!
+                return URL(string: "https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/jquery-speedtest/100MB.txt")!
             case .previous:
-                return URL(string: "https://heimdalqastorage.blob.core.windows.net/mac-agent-updates/rc/pkg/HeimdalPackage_3.5.1_RC_xProtect.pkg")!
+                return URL(string: "https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/jquery-speedtest/100MB.txt")!
             }
         }
+        
 
         var title: String {
             switch self {
-            case .current: return "Download v3.5.2 RC"
-            case .previous: return "Download v3.5.1 RC"
+            case .current: return "Download 1"
+            case .previous: return "Download 2"
             }
         }
     }
