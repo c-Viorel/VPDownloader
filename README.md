@@ -8,7 +8,7 @@ Swift 6 ready downloader that writes any remote file to any folder on Apple plat
 - ✅ Fully controllable destinations (`/path/to/folder`, custom names, overwrite rules).
 - ✅ Configurable retry strategy with constant or exponential backoff.
 - ✅ Thorough unit test coverage with a deterministic `URLProtocol` stub.
-- ✅ Global `VPFileDownloader.shared` registry to inspect running downloads or share a single session.
+- ✅ Global `VPFileDownloader.shared` registry lets you inspect running downloads or share a single session across the app.
 
 ## Installation
 Add the package from the root of your `Package.swift`:
@@ -65,7 +65,7 @@ try await downloader.download(
 - Pass any headers using the `headers` parameter (`Authorization`, `Range`, etc.).
 - Inspect download progress via the closure or observe `bytesReceived`/`fractionCompleted` to drive UI updates.
 - Use multiple downloader instances with custom `URLSessionConfiguration` for background or ephemeral sessions.
-- Share a single downloader across the app with `VPFileDownloader.shared` and ask `await downloader.activeDownloadsList()` to drive list UIs.
+- Share a single downloader across the app with `VPFileDownloader.shared`, and drive list UIs by calling `await downloader.activeDownloadsList()` to inspect/manage all active transfers.
 - Detect `VPDownloadError.destinationExists` to prompt the user before overwriting files.
 
 ### Background Sessions
