@@ -79,22 +79,6 @@ let backgroundDownloader = VPFileDownloader(
 
 Schedule downloads the same way—Swift Concurrency awaits completion while still allowing the OS to optimize transfers when your app is suspended.
 
-## Creating a new Swift Package
-
-Need a fresh Swift Package Manager project to host your app or integration tests? Run the following commands:
-
-```bash
-mkdir MyDownloaderApp && cd MyDownloaderApp
-swift package init --type executable
-```
-
-Then open `Package.swift` and add VPDownloader under `dependencies` and your target’s dependency list (see Installation). Finally, develop and run with:
-
-```bash
-swift build
-swift test   # optional, runs your package's tests
-swift run    # executes the main target (for executable packages)
-```
 
 ## Testing
 
