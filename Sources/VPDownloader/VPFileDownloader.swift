@@ -33,8 +33,18 @@ import Foundation
 /// }
 /// ```
 public actor VPFileDownloader {
+    public struct ActiveDownload: Sendable {
+        public let source: URL
+        public let destination: URL
+        public let startedAt: Date
+        public let identifier: UUID
+    }
+
+    public static let shared = VPFileDownloader()
+
     private let session: URLSession
     private let fileManager: FileManager
+    private var activeDownloads: [UUID: ActiveDownload] = [:]
 
     /// Creates a downloader with a custom `URLSession`.
     public init(session: URLSession = .shared, fileManager: FileManager = .default) {
@@ -72,6 +82,11 @@ public actor VPFileDownloader {
         session.configuration
     }
 
+    /// Returns currently running downloads for observation/UI purposes.
+    public func activeDownloadsList() -> [ActiveDownload] {
+        Array(activeDownloads.values)
+    }
+
     /// Downloads a file and writes it to disk.
     ///
     /// - Parameters:
@@ -94,6 +109,17 @@ public actor VPFileDownloader {
             var request = URLRequest(url: sourceURL)
             headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
 
+            let destinationURL = try prepareDestinationURL(from: sourceURL, destination: destination)
+            let identifier = UUID()
+            let record = ActiveDownload(
+                source: sourceURL,
+                destination: destinationURL,
+                startedAt: Date(),
+                identifier: identifier
+            )
+            activeDownloads[identifier] = record
+            defer { activeDownloads.removeValue(forKey: identifier) }
+
             let (bytes, response) = try await session.bytes(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw VPDownloadError.invalidResponse
@@ -102,7 +128,6 @@ public actor VPFileDownloader {
                 throw VPDownloadError.httpError(statusCode: httpResponse.statusCode)
             }
 
-            let destinationURL = try prepareDestinationURL(from: sourceURL, destination: destination)
             try ensureDestinationWritable(destinationURL, overwrite: destination.overwriteExisting)
             try await persist(
                 stream: bytes,

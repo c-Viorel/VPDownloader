@@ -9,7 +9,10 @@ final class VPFileDownloaderTests: XCTestCase {
         let destination = VPDownloadDestination(directory: destinationDirectory, fileName: "video.bin")
         let url = URL(string: "https://example.com/video.bin")!
         let payload = Data("payload".utf8)
-        VPURLProtocolStub.enqueue(.success((response(for: url, status: 200, contentLength: payload.count), payload)))
+        VPURLProtocolStub.enqueue(
+            .success((response(for: url, status: 200, contentLength: payload.count), payload)),
+            delay: 1
+        )
 
         let savedURL = try await downloader.download(from: url, destination: destination)
         let fileContents = try Data(contentsOf: savedURL)
@@ -91,6 +94,28 @@ final class VPFileDownloaderTests: XCTestCase {
         XCTAssertEqual(configuration.identifier, identifier)
     }
 
+    func testActiveDownloadsListTracksRunningTasks() async throws {
+        VPURLProtocolStub.reset()
+        let downloader = makeDownloader()
+        let url = URL(string: "https://example.com/active.bin")!
+        let destinationDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let destination = VPDownloadDestination(directory: destinationDirectory)
+        let payload = Data(repeating: 0, count: 1024 * 1024) // 1 MB
+        VPURLProtocolStub.enqueue(.success((response(for: url, status: 200, contentLength: payload.count), payload)))
+
+        async let savedURL = downloader.download(from: url, destination: destination)
+        await Task.yield()
+
+        let running = await downloader.activeDownloadsList()
+        XCTAssertEqual(running.count, 1)
+        XCTAssertEqual(running.first?.source, url)
+
+        _ = try await savedURL
+
+        let finished = await downloader.activeDownloadsList()
+        XCTAssertTrue(finished.isEmpty)
+    }
+
     // MARK: - Helpers
 
     private func makeDownloader() -> VPFileDownloader {
@@ -122,7 +147,7 @@ final class VPURLProtocolStub: URLProtocol {
     }
 
     override func startLoading() {
-        let result = VPURLProtocolStub.state.withLock { state -> Result<(URLResponse, Data), Error>? in
+        let entry = VPURLProtocolStub.state.withLock { state -> VPURLProtocolStubState.Entry? in
             state.requestCount += 1
             guard !state.queue.isEmpty else { return nil }
             return state.queue.removeFirst()
@@ -130,12 +155,16 @@ final class VPURLProtocolStub: URLProtocol {
 
         guard let client = client else { return }
 
-        guard let result else {
+        guard let entry else {
             client.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
             return
         }
 
-        switch result {
+        if entry.delay > 0 {
+            Thread.sleep(forTimeInterval: entry.delay)
+        }
+
+        switch entry.payload {
         case .success(let payload):
             client.urlProtocol(self, didReceive: payload.0, cacheStoragePolicy: .notAllowed)
             client.urlProtocol(self, didLoad: payload.1)
@@ -147,8 +176,8 @@ final class VPURLProtocolStub: URLProtocol {
 
     override func stopLoading() {}
 
-    static func enqueue(_ result: Result<(URLResponse, Data), Error>) {
-        state.withLock { $0.queue.append(result) }
+    static func enqueue(_ result: Result<(URLResponse, Data), Error>, delay: TimeInterval = 0) {
+        state.withLock { $0.queue.append(.init(payload: result, delay: delay)) }
     }
 
     static func reset() {
@@ -164,7 +193,12 @@ final class VPURLProtocolStub: URLProtocol {
 }
 
 private struct VPURLProtocolStubState {
-    var queue: [Result<(URLResponse, Data), Error>] = []
+    struct Entry {
+        let payload: Result<(URLResponse, Data), Error>
+        let delay: TimeInterval
+    }
+
+    var queue: [Entry] = []
     var requestCount = 0
 }
 

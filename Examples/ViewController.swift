@@ -25,7 +25,7 @@ final class ViewController: NSViewController {
         }
     }
 
-    private let downloader = VPFileDownloader()
+    private let downloader = VPFileDownloader.shared
     private var tasks: [DownloadItem: Task<Void, Never>] = [:]
 
     private let stackView = NSStackView()
