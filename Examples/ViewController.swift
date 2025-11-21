@@ -48,6 +48,9 @@ final class ViewController: NSViewController {
             progress: progressPrevious,
             statusLabel: statusLabelPrevious
         )
+        let logButton = NSButton(title: "Log Active Downloads", target: self, action: #selector(logActiveDownloads))
+        logButton.bezelStyle = .rounded
+        stackView.addArrangedSubview(logButton)
     }
 
     override var representedObject: Any? {
@@ -128,7 +131,7 @@ final class ViewController: NSViewController {
                 let savedURL = try await downloader.download(
                     from: item.url,
                     to: destinationFolder,
-                    progress: { progress in
+                    progressHandler: { progress in
                         DispatchQueue.main.async {
                             targetProgress.doubleValue = progress.fractionCompleted ?? 0
                             let received = ByteCountFormatter.string(fromByteCount: Int64(progress.bytesReceived), countStyle: .file)
@@ -155,6 +158,20 @@ final class ViewController: NSViewController {
                 DispatchQueue.main.async {
                     targetLabel.stringValue = "Failed: \(error.localizedDescription)"
                     targetProgress.doubleValue = 0
+                }
+            }
+        }
+    }
+
+    @objc
+    private func logActiveDownloads() {
+        Task {
+            let downloads = await downloader.activeDownloadsList()
+            if downloads.isEmpty {
+                NSLog("No active downloads")
+            } else {
+                for download in downloads {
+                    NSLog("Active download \(download.identifier): \(download.source.lastPathComponent) -> \(download.destination.path)")
                 }
             }
         }
