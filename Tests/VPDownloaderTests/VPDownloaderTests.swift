@@ -84,10 +84,11 @@ final class VPFileDownloaderTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: savedURL.path))
     }
 
-    func testBackgroundInitializerConfiguresIdentifier() {
+    func testBackgroundInitializerConfiguresIdentifier() async {
         let identifier = "com.vpdownloader.tests.background.\(UUID().uuidString)"
         let downloader = VPFileDownloader(backgroundIdentifier: identifier)
-        XCTAssertEqual(downloader.configuration.identifier, identifier)
+        let configuration = await downloader.configuration
+        XCTAssertEqual(configuration.identifier, identifier)
     }
 
     // MARK: - Helpers

@@ -32,7 +32,7 @@ import Foundation
 ///     }
 /// }
 /// ```
-public final class VPFileDownloader {
+public actor VPFileDownloader {
     private let session: URLSession
     private let fileManager: FileManager
 
@@ -42,9 +42,10 @@ public final class VPFileDownloader {
         self.fileManager = fileManager
     }
 
-    /// Convenience initializer for providing a session configuration.
-    public convenience init(configuration: URLSessionConfiguration, fileManager: FileManager = .default) {
-        self.init(session: URLSession(configuration: configuration), fileManager: fileManager)
+    /// Builds a downloader from a custom configuration.
+    public init(configuration: URLSessionConfiguration, fileManager: FileManager = .default) {
+        self.session = URLSession(configuration: configuration)
+        self.fileManager = fileManager
     }
 
     /// Convenience initializer for background-friendly sessions.
@@ -53,7 +54,7 @@ public final class VPFileDownloader {
     ///   - identifier: Unique identifier for the background session.
     ///   - sharedContainerIdentifier: Optional shared container for storing files outside the app sandbox.
     ///   - isDiscretionary: When true the OS can schedule transfers for optimal performance.
-    public convenience init(
+    public init(
         backgroundIdentifier identifier: String,
         sharedContainerIdentifier: String? = nil,
         isDiscretionary: Bool = false,
@@ -62,7 +63,8 @@ public final class VPFileDownloader {
         let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
         configuration.sharedContainerIdentifier = sharedContainerIdentifier
         configuration.isDiscretionary = isDiscretionary
-        self.init(configuration: configuration, fileManager: fileManager)
+        self.session = URLSession(configuration: configuration)
+        self.fileManager = fileManager
     }
 
     /// The underlying session configuration, useful for inspection/testing.
